@@ -1,0 +1,18 @@
+[2026-05-07 23:44:11] local.ERROR: Broadcast connection [redis] is not defined. {"exception":"[object] (InvalidArgumentException(code: 0): Broadcast connection [redis] is not defined. at /var/www/html/vendor/laravel/framework/src/Illuminate/Broadcasting/BroadcastManager.php:281)
+[stacktrace]
+#0 /var/www/html/vendor/laravel/framework/src/Illuminate/Broadcasting/BroadcastManager.php(265): Illuminate\\Broadcasting\\BroadcastManager->resolve()
+#1 /var/www/html/vendor/laravel/framework/src/Illuminate/Broadcasting/BroadcastManager.php(254): Illuminate\\Broadcasting\\BroadcastManager->get()
+#2 /var/www/html/vendor/laravel/framework/src/Illuminate/Broadcasting/BroadcastManager.php(550): Illuminate\\Broadcasting\\BroadcastManager->driver()
+#3 /var/www/html/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(363): Illuminate\\Broadcasting\\BroadcastManager->__call()
+#4 /var/www/html/routes/channels.php(16): Illuminate\\Support\\Facades\\Facade::__callStatic()
+#5 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Configuration/ApplicationBuilder.php(132): require('...')
+#6 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1194): Illuminate\\Foundation\\Configuration\\ApplicationBuilder->{closure:Illuminate\\Foundation\\Configuration\\ApplicationBuilder::withBroadcasting():128}()
+#7 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1137): Illuminate\\Foundation\\Application->fireAppCallbacks()
+#8 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Bootstrap/BootProviders.php(17): Illuminate\\Foundation\\Application->boot()
+#9 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(342): Illuminate\\Foundation\\Bootstrap\\BootProviders->bootstrap()
+#10 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(494): Illuminate\\Foundation\\Application->bootstrapWith()
+#11 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(196): Illuminate\\Foundation\\Console\\Kernel->bootstrap()
+#12 /var/www/html/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#13 /var/www/html/artisan(11): Illuminate\\Foundation\\Application->handleCommand()
+#14 {main}
+"} 

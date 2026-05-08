@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Disallow admin area
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_debug/
+Disallow: /_profiler/
+
+# Disallow auth routes except login/register
+Disallow: /password/
+Disallow: /sanctum/
+
+# Disallow member-only areas
+Disallow: /dashboard/
+Disallow: /bookings/
+Disallow: /profile/
+
+# Allow search engines to access sitemap
+Sitemap: https://travel-booking.test/sitemap.xml
+
+# Crawl-delay for polite crawling
+Crawl-delay: 10

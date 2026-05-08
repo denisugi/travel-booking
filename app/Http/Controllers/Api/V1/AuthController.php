@@ -81,7 +81,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->firstOrFail();
 
-        if (!$user->is_active) {
+        if ($user->status !== 'active') {
             return response()->json([
                 'success' => false,
                 'message' => 'Account is deactivated',

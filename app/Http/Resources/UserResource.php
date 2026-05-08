@@ -22,7 +22,7 @@ class UserResource extends JsonResource
             'email_verified_at' => $this->email_verified_at,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
-            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('slug')),
+            'roles' => $this->whenLoaded('roles', fn () => $this->roles->pluck('name')),
             'bookings' => BookingResource::collection($this->whenLoaded('bookings')),
             'bank_accounts' => BankAccountResource::collection($this->whenLoaded('bankAccounts')),
         ];

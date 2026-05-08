@@ -11,43 +11,16 @@ Route::get('/', function () {
         ->featured()
         ->take(4)
         ->get()
-        ->map(function ($pkg) {
-            return [
-                'id' => $pkg->id,
-                'name' => $pkg->name,
-                'slug' => $pkg->slug,
-                'destination' => $pkg->destination,
-                'duration' => $pkg->duration,
-                'duration_days' => $pkg->duration_days,
-                'duration_nights' => $pkg->duration_nights,
-                'price' => (float) $pkg->price,
-                'discount_price' => $pkg->discount_price ? (float) $pkg->discount_price : null,
-                'is_on_sale' => $pkg->is_on_sale,
-                'savings_amount' => (float) $pkg->savings_amount,
-                'featured_image' => $pkg->featured_image ?: ($pkg->gallery_images[0] ?? 'https://images.unsplash.com/photo-1506929562872-bb421503ef21'),
-                'is_featured' => $pkg->is_featured,
-            ];
-        });
+        ->toArray();
 
     $blogPosts = BlogPost::with(['category', 'user'])
         ->where('status', 'published')
         ->orderBy('published_at', 'desc')
         ->take(3)
         ->get()
-        ->map(function ($post) {
-            return [
-                'id' => $post->id,
-                'title' => $post->title,
-                'slug' => $post->slug,
-                'excerpt' => $post->excerpt,
-                'featured_image' => $post->featured_image ?: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828',
-                'published_at' => $post->published_at?->format('M d, Y'),
-                'category' => $post->category?->name,
-                'view_count' => $post->view_count,
-            ];
-        });
+        ->toArray();
 
-    return Inertia::render('Public/Home', [
+    return \Inertia\Inertia::render('Public/Home', [
         'featuredPackages' => $featuredPackages,
         'blogPosts' => $blogPosts,
     ]);
@@ -189,3 +162,17 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 Route::get('/up', function () {
     return response()->json(['status' => 'ok']);
 });
+
+// Test route
+Route::get('/test-simple', fn() => 'hello');
+
+// Test with data
+Route::get('/test-data', function () {
+    return \Inertia\Inertia::render('Public/Home', [
+        'featuredPackages' => [
+            ['id' => 1, 'name' => 'Bali Paradise', 'destination' => 'Bali, Indonesia', 'price' => 1299.99, 'featured_image' => 'https://images.unsplash.com/photo-1537996194471-e657df975ab4']
+        ],
+        'blogPosts' => []
+    ]);
+});
+

@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             BlogCategorySeeder::class,
             TravelPackageSeeder::class,
             BlogPostSeeder::class,
+            BookingSeeder::class,
         ]);
     }
 }

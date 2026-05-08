@@ -50,13 +50,13 @@ class User extends Authenticatable
 
     public function hasRole(string $role): bool
     {
-        return $this->roles->where('slug', $role)->isNotEmpty();
+        return $this->roles->where('name', $role)->isNotEmpty();
     }
 
     public function hasPermission(string $permission): bool
     {
         foreach ($this->roles as $role) {
-            if ($role->permissions->where('slug', $permission)->isNotEmpty()) {
+            if ($role->permissions->where('name', $permission)->isNotEmpty()) {
                 return true;
             }
         }

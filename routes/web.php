@@ -99,7 +99,53 @@ Route::middleware('auth')->group(function () {
 // Admin Routes
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
-        return Inertia::render('Admin/Dashboard');
+        $stats = [
+            'total_packages' => \App\Models\TravelPackage::count(),
+            'total_users' => \App\Models\User::count(),
+            'total_bookings' => \App\Models\Booking::count(),
+            'total_blogs' => \App\Models\BlogPost::count(),
+            'pending_bookings' => \App\Models\Booking::where('status', 'pending')->count(),
+            'confirmed_bookings' => \App\Models\Booking::where('status', 'confirmed')->count(),
+            'cancelled_bookings' => \App\Models\Booking::where('status', 'cancelled')->count(),
+            'paid_bookings' => \App\Models\Booking::where('payment_status', 'paid')->count(),
+            'pending_payments' => \App\Models\Booking::whereIn('payment_status', ['unpaid', 'partial'])->count(),
+        ];
+
+        $recentBookings = \App\Models\Booking::with(['user', 'travelPackage'])
+            ->orderBy('created_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(fn($b) => [
+                'id' => $b->id,
+                'booking_number' => $b->booking_number,
+                'customer_name' => $b->user?->name ?? 'N/A',
+                'package_name' => $b->travelPackage?->name ?? 'N/A',
+                'total_amount' => $b->total_amount,
+                'status' => $b->status,
+                'payment_status' => $b->payment_status,
+                'created_at' => $b->created_at->format('Y-m-d H:i'),
+            ]);
+
+        $recentPayments = \App\Models\Booking::with(['user'])
+            ->whereIn('payment_status', ['paid', 'partial'])
+            ->whereNotNull('confirmed_at')
+            ->orderBy('confirmed_at', 'desc')
+            ->take(5)
+            ->get()
+            ->map(fn($b) => [
+                'id' => $b->id,
+                'booking_number' => $b->booking_number,
+                'customer_name' => $b->user?->name ?? 'N/A',
+                'amount' => $b->total_amount,
+                'payment_status' => $b->payment_status,
+                'created_at' => $b->confirmed_at?->format('Y-m-d H:i') ?? $b->created_at->format('Y-m-d H:i'),
+            ]);
+
+        return Inertia::render('Admin/Dashboard', [
+            'stats' => $stats,
+            'recentBookings' => $recentBookings,
+            'recentPayments' => $recentPayments,
+        ]);
     })->name('dashboard');
 
     // Packages

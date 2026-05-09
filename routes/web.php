@@ -139,7 +139,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
                 'customer_name' => $b->user?->name ?? 'N/A',
                 'amount' => $b->total_amount,
                 'payment_status' => $b->payment_status,
-                'created_at' => $b->confirmed_at?->format('Y-m-d H:i') ?? $b->created_at->format('Y-m-d H:i'),
+                'created_at' => \Carbon\Carbon::parse($b->confirmed_at)->format('Y-m-d H:i'),
             ]);
 
         return Inertia::render('Admin/Dashboard', [

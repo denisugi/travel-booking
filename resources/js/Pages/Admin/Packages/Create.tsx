@@ -88,9 +88,42 @@ export default function PackageCreate() {
     e.preventDefault();
     if (!validate()) return;
     setIsSubmitting(true);
+    setErrors({});
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      navigate('/admin/packages');
+      const token = (document.querySelector('meta[name="csrf-token"]') as HTMLMetaElement)?.content;
+      const form = e.target as HTMLFormElement;
+      const formDataObj = new FormData(form);
+      formDataObj.set('_token', token || '');
+
+      const response = await fetch('/admin/packages', {
+        method: 'POST',
+        headers: {
+          'X-CSRF-TOKEN': token || '',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Accept': 'text/html',
+        },
+        body: formDataObj,
+      });
+
+      if (response.redirected || response.ok) {
+        window.location.href = response.url || '/admin/packages';
+        return;
+      }
+
+      if (response.status === 422) {
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const errorElements = doc.querySelectorAll('[class*="error"], [class*="text-red"]');
+        const fieldErrors: { [key: string]: string } = {};
+        errorElements.forEach((el) => {
+          const text = el.textContent?.trim() || '';
+          if (text) fieldErrors.submit = text;
+        });
+        setErrors({ submit: fieldErrors.submit || 'Validation failed. Please check your input.' });
+      } else {
+        setErrors({ submit: 'Failed to create package. Please try again.' });
+      }
     } catch (error) {
       setErrors({ submit: 'Failed to create package. Please try again.' });
     } finally {

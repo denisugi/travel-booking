@@ -156,6 +156,32 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/packages/create', function () {
         return Inertia::render('Admin/Packages/Create');
     })->name('packages.create');
+    Route::post('/packages', function (\Illuminate\Http\Request $request) {
+        $data = $request->validate([
+            'name' => 'required|string|max:255',
+            'slug' => 'required|string|max:255|unique:travel_packages',
+            'short_description' => 'nullable|string|max:500',
+            'description' => 'required|string',
+            'destination' => 'required|string|max:255',
+            'duration_days' => 'required|integer|min:1',
+            'duration_nights' => 'required|integer|min:0',
+            'price' => 'required|numeric|min:0',
+            'discount_price' => 'nullable|numeric|min:0',
+            'max_participants' => 'required|integer|min:1',
+            'departure_date' => 'required|date',
+            'return_date' => 'required|date|after:departure_date',
+            'featured' => 'boolean',
+            'is_active' => 'boolean',
+            'includes' => 'nullable|string',
+            'excludes' => 'nullable|string',
+            'itinerary' => 'nullable|string',
+            'highlights' => 'nullable|string',
+            'terms_conditions' => 'nullable|string',
+        ]);
+        $data['user_id'] = $request->user()->id;
+        $package = \App\Models\TravelPackage::create($data);
+        return redirect()->route('admin.packages.index')->with('success', 'Package created successfully');
+    })->name('packages.store');
     Route::get('/packages/{id}/edit', function ($id) {
         return Inertia::render('Admin/Packages/Edit', ['id' => $id]);
     })->name('packages.edit');

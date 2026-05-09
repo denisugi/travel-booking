@@ -21,7 +21,7 @@ class UserFactory extends Factory
             'remember_token' => Str::random(10),
             'phone' => fake()->phoneNumber(),
             'avatar' => fake()->imageUrl(200, 200, 'people'),
-            'status' => fake()->randomElement(['active', 'inactive', 'banned']),
+            'status' => fake()->randomElement(['active', 'inactive', 'suspended']),
         ];
     }
 
@@ -37,6 +37,13 @@ class UserFactory extends Factory
         return $this->state(fn (array $attributes) => [
             'name' => 'Admin User',
             'email' => 'admin@example.com',
+        ]);
+    }
+
+    public function active(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'status' => 'active',
         ]);
     }
 }

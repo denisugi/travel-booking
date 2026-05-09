@@ -1,15 +1,20 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Search, 
-  Filter, 
+import { useState, useEffect } from 'react';
+import { Link } from '@inertiajs/react';
+import {
+  Search,
+  Filter,
   Eye,
   ChevronLeft,
   ChevronRight,
   MapPin,
   Calendar,
   User,
-  X
+  X,
+  RefreshCw,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 
 interface Booking {
@@ -23,68 +28,16 @@ interface Booking {
   booking_date: string;
   travel_date: string;
   number_of_travelers: number;
-  total_amount: number;
+  total_amount: string;
   payment_status: string;
 }
 
-const mockBookings: Booking[] = [
-  {
-    id: 1,
-    booking_number: 'BK-ABC123-20240501',
-    customer_name: 'John Doe',
-    customer_email: 'john.doe@example.com',
-    package_name: 'Bali Paradise Trip',
-    package_destination: 'Bali, Indonesia',
-    status: 'confirmed',
-    booking_date: '2024-05-01',
-    travel_date: '2024-06-15',
-    number_of_travelers: 2,
-    total_amount: 5500000,
-    payment_status: 'paid',
-  },
-  {
-    id: 2,
-    booking_number: 'BK-DEF456-20240502',
-    customer_name: 'Jane Smith',
-    customer_email: 'jane.smith@example.com',
-    package_name: 'Tokyo Adventure',
-    package_destination: 'Tokyo, Japan',
-    status: 'pending',
-    booking_date: '2024-05-02',
-    travel_date: '2024-07-20',
-    number_of_travelers: 1,
-    total_amount: 7800000,
-    payment_status: 'pending',
-  },
-  {
-    id: 3,
-    booking_number: 'BK-GHI789-20240415',
-    customer_name: 'Robert Johnson',
-    customer_email: 'robert.j@example.com',
-    package_name: 'Paris Romance',
-    package_destination: 'Paris, France',
-    status: 'completed',
-    booking_date: '2024-04-15',
-    travel_date: '2024-05-10',
-    number_of_travelers: 2,
-    total_amount: 12000000,
-    payment_status: 'paid',
-  },
-  {
-    id: 4,
-    booking_number: 'BK-JKL012-20240320',
-    customer_name: 'Emily Brown',
-    customer_email: 'emily.b@example.com',
-    package_name: 'Swiss Alps Experience',
-    package_destination: 'Zurich, Switzerland',
-    status: 'cancelled',
-    booking_date: '2024-03-20',
-    travel_date: '2024-04-05',
-    number_of_travelers: 3,
-    total_amount: 15000000,
-    payment_status: 'refunded',
-  },
-];
+interface Pagination {
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
+}
 
 const statusOptions = [
   { value: '', label: 'All Status' },
@@ -96,25 +49,91 @@ const statusOptions = [
 
 const paymentStatusOptions = [
   { value: '', label: 'All Payments' },
-  { value: 'pending', label: 'Pending' },
+  { value: 'unpaid', label: 'Unpaid' },
+  { value: 'partial', label: 'Partial' },
   { value: 'paid', label: 'Paid' },
   { value: 'refunded', label: 'Refunded' },
-  { value: 'failed', label: 'Failed' },
 ];
 
 export default function BookingsIndex() {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [paymentFilter, setPaymentFilter] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [pagination, setPagination] = useState<Pagination | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const formatCurrency = (amount: number) => {
+  const fetchBookings = async (page = 1) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        per_page: '10',
+      });
+      if (searchQuery) params.append('booking_number', searchQuery);
+      if (statusFilter) params.append('status', statusFilter);
+      if (paymentFilter) params.append('payment_status', paymentFilter);
+
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/v1/admin/bookings?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBookings(data.data.data.map((b: any) => ({
+          id: b.id,
+          booking_number: b.booking_number,
+          customer_name: b.user?.name ?? 'N/A',
+          customer_email: b.user?.email ?? '',
+          package_name: b.travel_package?.name ?? 'N/A',
+          package_destination: b.travel_package?.destination ?? '',
+          status: b.status,
+          booking_date: b.created_at,
+          travel_date: b.travel_date,
+          number_of_travelers: b.number_of_travelers,
+          total_amount: b.total_amount,
+          payment_status: b.payment_status,
+        })));
+        setPagination(data.data);
+      } else {
+        setError(data.message || 'Failed to load bookings');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings(currentPage);
+  }, [currentPage, statusFilter, paymentFilter]);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery || currentPage === 1) {
+        fetchBookings(1);
+        setCurrentPage(1);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(num);
   };
 
   const getStatusBadge = (status: string) => {
@@ -130,37 +149,19 @@ export default function BookingsIndex() {
   const getPaymentBadge = (status: string) => {
     const styles: Record<string, string> = {
       paid: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
+      partial: 'bg-orange-100 text-orange-800',
+      unpaid: 'bg-red-100 text-red-800',
       refunded: 'bg-purple-100 text-purple-800',
-      failed: 'bg-red-100 text-red-800',
     };
     return styles[status] || 'bg-gray-100 text-gray-800';
   };
-
-  const filteredBookings = mockBookings.filter((booking) => {
-    const matchesSearch = 
-      booking.booking_number.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customer_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.customer_email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.package_name.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = statusFilter === '' || booking.status === statusFilter;
-    const matchesPayment = paymentFilter === '' || booking.payment_status === paymentFilter;
-    
-    return matchesSearch && matchesStatus && matchesPayment;
-  });
-
-  const totalPages = Math.ceil(filteredBookings.length / itemsPerPage);
-  const paginatedBookings = filteredBookings.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
 
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('');
     setPaymentFilter('');
     setCurrentPage(1);
+    fetchBookings(1);
   };
 
   const hasActiveFilters = searchQuery || statusFilter || paymentFilter;
@@ -168,46 +169,79 @@ export default function BookingsIndex() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
-          <p className="text-gray-600 mt-1">Manage all travel bookings</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
+            <p className="text-gray-600 mt-1">Manage all travel bookings</p>
+          </div>
+          <button
+            onClick={() => fetchBookings(currentPage)}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input type="text" placeholder="Search by booking number, customer name, email, or package..."
-                value={searchQuery} onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+              <input
+                type="text"
+                placeholder="Search by booking number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              />
             </div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white min-w-[140px]">
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="pl-10 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white min-w-[140px]"
+              >
                 {statusOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
             <div className="relative">
-              <select value={paymentFilter} onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
-                className="pl-4 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white min-w-[140px]">
+              <select
+                value={paymentFilter}
+                onChange={(e) => { setPaymentFilter(e.target.value); setCurrentPage(1); }}
+                className="pl-4 pr-8 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none bg-white min-w-[140px]"
+              >
                 {paymentStatusOptions.map((option) => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
             </div>
             {hasActiveFilters && (
-              <button onClick={clearFilters} className="px-4 py-2.5 text-gray-600 hover:text-gray-800 flex items-center gap-2">
+              <button
+                onClick={clearFilters}
+                className="px-4 py-2.5 text-gray-600 hover:text-gray-800 flex items-center gap-2"
+              >
                 <X className="w-4 h-4" /> Clear
               </button>
             )}
           </div>
         </div>
 
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          {paginatedBookings.length === 0 ? (
+          {loading ? (
+            <div className="p-12 text-center">
+              <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+              <p className="text-gray-500">Loading bookings...</p>
+            </div>
+          ) : bookings.length === 0 ? (
             <div className="p-12 text-center">
               <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
               <h3 className="text-lg font-medium text-gray-900">No bookings found</h3>
@@ -230,12 +264,12 @@ export default function BookingsIndex() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {paginatedBookings.map((booking) => (
+                    {bookings.map((booking) => (
                       <tr key={booking.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <p className="font-medium text-gray-900">{booking.booking_number}</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            Booked: {new Date(booking.booking_date).toLocaleDateString('id-ID')}
+                            {new Date(booking.booking_date).toLocaleDateString('id-ID')}
                           </p>
                         </td>
                         <td className="px-6 py-4">
@@ -245,7 +279,7 @@ export default function BookingsIndex() {
                         <td className="px-6 py-4">
                           <p className="text-sm text-gray-900">{booking.package_name}</p>
                           <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
-                            <MapPin className="w-3 h-3" /> {booking.package_destination}
+                            <MapPin className="w-3 h-3" /> {booking.package_destination || '-'}
                           </p>
                         </td>
                         <td className="px-6 py-4">
@@ -270,8 +304,10 @@ export default function BookingsIndex() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <Link to={`/admin/bookings/${booking.id}`}
-                            className="p-2 text-gray-400 hover:text-blue-600 transition-colors inline-flex items-center gap-1">
+                          <Link
+                            href={`/admin/bookings/${booking.id}`}
+                            className="p-2 text-gray-400 hover:text-blue-600 transition-colors inline-flex items-center gap-1"
+                          >
                             <Eye className="w-4 h-4" /> View
                           </Link>
                         </td>
@@ -280,24 +316,27 @@ export default function BookingsIndex() {
                   </tbody>
                 </table>
               </div>
-              {totalPages > 1 && (
+              {pagination && pagination.last_page > 1 && (
                 <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
                   <p className="text-sm text-gray-600">
-                    Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredBookings.length)} of {filteredBookings.length} results
+                    Showing {(pagination.current_page - 1) * pagination.per_page + 1} to {Math.min(pagination.current_page * pagination.per_page, pagination.total)} of {pagination.total} results
                   </p>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setCurrentPage((p) => Math.max(1, p - 1))} disabled={currentPage === 1}
-                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                    <button
+                      onClick={() => { setCurrentPage(p => Math.max(1, p - 1)); }}
+                      disabled={currentPage === 1}
+                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
                       <ChevronLeft className="w-4 h-4" />
                     </button>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button key={page} onClick={() => setCurrentPage(page)}
-                        className={`w-10 h-10 rounded-lg text-sm font-medium ${currentPage === page ? 'bg-blue-600 text-white' : 'border border-gray-200 hover:bg-gray-50'}`}>
-                        {page}
-                      </button>
-                    ))}
-                    <button onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages}
-                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50">
+                    <span className="px-3 py-2 text-sm font-medium">
+                      Page {pagination.current_page} of {pagination.last_page}
+                    </span>
+                    <button
+                      onClick={() => { setCurrentPage(p => Math.min(pagination.last_page, p + 1)); }}
+                      disabled={currentPage === pagination.last_page}
+                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
                       <ChevronRight className="w-4 h-4" />
                     </button>
                   </div>

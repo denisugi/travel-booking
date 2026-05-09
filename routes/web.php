@@ -5,6 +5,7 @@ use Inertia\Inertia;
 use App\Models\TravelPackage;
 use App\Models\BlogPost;
 use App\Models\SiteSetting;
+use App\Http\Controllers\Auth\LoginController;
 
 Route::get('/', function () {
     $featuredPackages = TravelPackage::with(['galleries'])
@@ -60,9 +61,9 @@ Route::get('/faq', function () {
 
 // Auth Routes
 Route::middleware('guest')->group(function () {
-    Route::get('/login', function () {
-        return Inertia::render('Auth/Login');
-    })->name('login');
+    Route::get('/login', [LoginController::class, 'create'])->name('login');
+    Route::post('/login', [LoginController::class, 'store'])->name('login.store');
+    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout')->middleware('auth');
 
     Route::get('/register', function () {
         return Inertia::render('Auth/Register');

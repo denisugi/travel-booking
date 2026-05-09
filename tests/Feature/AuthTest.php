@@ -13,7 +13,7 @@ class AuthTest extends TestCase
     /** @test */
     public function users_can_register()
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'password123',
@@ -25,7 +25,8 @@ class AuthTest extends TestCase
                 'success',
                 'data' => [
                     'user' => ['id', 'name', 'email'],
-                    'token',
+                    'access_token',
+                    'token_type',
                 ],
             ]);
 
@@ -37,12 +38,12 @@ class AuthTest extends TestCase
     /** @test */
     public function users_can_login()
     {
-        $user = User::factory()->create([
+        $user = User::factory()->active()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'password123',
         ]);
@@ -52,7 +53,8 @@ class AuthTest extends TestCase
                 'success',
                 'data' => [
                     'user' => ['id', 'name', 'email'],
-                    'token',
+                    'access_token',
+                    'token_type',
                 ],
             ]);
     }
@@ -60,12 +62,12 @@ class AuthTest extends TestCase
     /** @test */
     public function users_cannot_login_with_invalid_credentials()
     {
-        $user = User::factory()->create([
+        $user = User::factory()->active()->create([
             'email' => 'test@example.com',
             'password' => bcrypt('password123'),
         ]);
 
-        $response = $this->postJson('/api/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'test@example.com',
             'password' => 'wrong-password',
         ]);
@@ -80,22 +82,22 @@ class AuthTest extends TestCase
     /** @test */
     public function users_can_logout()
     {
-        $user = User::factory()->create();
+$user = User::factory()->active()->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->postJson('/api/logout');
+            ->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson([
                 'success' => true,
-                'message' => 'Logged out successfully',
+                'message' => 'Successfully logged out',
             ]);
     }
 
     /** @test */
     public function registration_requires_valid_data()
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => '',
             'email' => 'invalid-email',
             'password' => 'short',
@@ -110,7 +112,7 @@ class AuthTest extends TestCase
     {
         User::factory()->create(['email' => 'test@example.com']);
 
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'password123',
@@ -127,7 +129,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->getJson('/api/profile');
+            ->getJson('/api/v1/auth/user');
 
         $response->assertStatus(200)
             ->assertJsonFragment([
@@ -138,7 +140,7 @@ class AuthTest extends TestCase
     /** @test */
     public function unauthenticated_users_cannot_access_protected_routes()
     {
-        $response = $this->getJson('/api/profile');
+        $response = $this->getJson('/api/v1/auth/user');
 
         $response->assertStatus(401);
     }
@@ -149,7 +151,7 @@ class AuthTest extends TestCase
         $user = User::factory()->create();
 
         $response = $this->actingAs($user, 'sanctum')
-            ->putJson('/api/profile', [
+            ->putJson('/api/v1/auth/profile', [
                 'name' => 'Updated Name',
                 'phone' => '1234567890',
             ]);
@@ -166,7 +168,7 @@ class AuthTest extends TestCase
     /** @test */
     public function password_must_be_at_least_8_characters()
     {
-        $response = $this->postJson('/api/register', [
+        $response = $this->postJson('/api/v1/auth/register', [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'short',

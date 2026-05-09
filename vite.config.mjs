@@ -1,10 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import ziggy from 'vite-plugin-ziggy'
 
 export default defineConfig({
   plugins: [
     react(),
+    ziggy(),
     {
       name: 'laravel',
       enforce: 'pre',

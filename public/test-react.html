@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><title>Test React</title></head>
+<body>
+<div id="app">TEST DIV - should be replaced by React</div>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+  console.error('JS ERROR:', msg, 'line:', line, 'col:', col);
+  return false;
+};
+console.log('Starting app.js load...');
+</script>
+<script src="/build/assets/app.js" defer onerror="console.error('Failed to load app.js')" onload="console.log('app.js loaded successfully')"></script>
+</body>
+</html>

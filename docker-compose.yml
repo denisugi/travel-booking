@@ -166,18 +166,17 @@ services:
     image: cloudflare/cloudflared:latest
     container_name: travel-booking-tunnel
     restart: unless-stopped
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN} --url http://app:80
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       - app
     networks:
       - travel-network
-    # Cloudflare Tunnel doesn't need exposed ports - it connects outbound to Cloudflare
 
 networks:
   travel-network:
-    driver: bridge
+    name: travel-booking_travel-network
 
 volumes:
   postgres_data:

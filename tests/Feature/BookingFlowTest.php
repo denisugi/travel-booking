@@ -25,7 +25,7 @@ class BookingFlowTest extends TestCase
             'name' => 'Test Bali Package',
             'slug' => 'test-bali-package',
             'price' => 1500.00,
-            'is_active' => true,
+            'status' => 'published',
             'max_participants' => 10,
             'duration_days' => 7,
             'duration_nights' => 6,
@@ -36,7 +36,7 @@ class BookingFlowTest extends TestCase
     /** @test */
     public function user_can_view_packages_list()
     {
-        $response = $this->getJson('/api/packages');
+        $response = $this->getJson('/api/v1/travel-packages');
 
         $response->assertStatus(200)
             ->assertJsonStructure([
@@ -55,7 +55,7 @@ class BookingFlowTest extends TestCase
     /** @test */
     public function user_can_view_package_details()
     {
-        $response = $this->getJson("/api/packages/{$this->package->slug}");
+        $response = $this->getJson("/api/v1/travel-packages/{$this->package->id}");
 
         $response->assertStatus(200)
             ->assertJsonFragment([
@@ -68,15 +68,15 @@ class BookingFlowTest extends TestCase
     public function user_can_create_booking()
     {
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $this->package->id,
                 'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
                 'return_date' => now()->addWeeks(3)->format('Y-m-d'),
                 'number_of_travelers' => 2,
                 'special_requests' => 'Late check-in please',
                 'travelers' => [
-                    ['name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890'],
-                    ['name' => 'Jane Doe', 'email' => 'jane@example.com', 'phone' => '0987654321'],
+                    ['first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'date_of_birth' => '1990-01-01', 'nationality' => 'US'],
+                    ['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com', 'phone' => '0987654321', 'date_of_birth' => '1992-05-15', 'nationality' => 'US'],
                 ],
             ]);
 
@@ -107,7 +107,7 @@ class BookingFlowTest extends TestCase
         Booking::factory()->count(3)->create(['user_id' => $this->user->id]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson('/api/bookings');
+            ->getJson('/api/v1/my-bookings');
 
         $response->assertStatus(200)
             ->assertJsonCount(3, 'data');
@@ -122,7 +122,7 @@ class BookingFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson("/api/bookings/{$booking->id}");
+            ->getJson("/api/v1/my-bookings/{$booking->id}");
 
         $response->assertStatus(200)
             ->assertJsonFragment([
@@ -137,7 +137,7 @@ class BookingFlowTest extends TestCase
         $booking = Booking::factory()->create(['user_id' => $otherUser->id]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->getJson("/api/bookings/{$booking->id}");
+            ->getJson("/api/v1/my-bookings/{$booking->id}");
 
         $response->assertStatus(403);
     }
@@ -146,14 +146,14 @@ class BookingFlowTest extends TestCase
     public function booking_calculates_correct_total()
     {
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $this->package->id,
                 'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
                 'return_date' => now()->addWeeks(3)->format('Y-m-d'),
                 'number_of_travelers' => 2,
                 'travelers' => [
-                    ['name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890'],
-                    ['name' => 'Jane Doe', 'email' => 'jane@example.com', 'phone' => '0987654321'],
+                    ['first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'date_of_birth' => '1990-01-01', 'nationality' => 'US'],
+                    ['first_name' => 'Jane', 'last_name' => 'Doe', 'email' => 'jane@example.com', 'phone' => '0987654321', 'date_of_birth' => '1992-05-15', 'nationality' => 'US'],
                 ],
             ]);
 
@@ -173,13 +173,13 @@ class BookingFlowTest extends TestCase
     public function booking_requires_travel_date_in_future()
     {
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $this->package->id,
                 'travel_date' => now()->subDay()->format('Y-m-d'),
                 'return_date' => now()->format('Y-m-d'),
                 'number_of_travelers' => 1,
                 'travelers' => [
-                    ['name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890'],
+                    ['first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'date_of_birth' => '1990-01-01', 'nationality' => 'US'],
                 ],
             ]);
 
@@ -191,7 +191,7 @@ class BookingFlowTest extends TestCase
     public function booking_requires_valid_travelers_count()
     {
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $this->package->id,
                 'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
                 'return_date' => now()->addWeeks(3)->format('Y-m-d'),
@@ -200,13 +200,13 @@ class BookingFlowTest extends TestCase
             ]);
 
         $response->assertStatus(422)
-            ->assertJsonValidationErrors(['number_of_travelers']);
+            ->assertJsonValidationErrors(['travelers']);
     }
 
     /** @test */
     public function unauthenticated_user_cannot_create_booking()
     {
-        $response = $this->postJson('/api/bookings', [
+        $response = $this->postJson('/api/v1/my-bookings', [
             'travel_package_id' => $this->package->id,
             'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
             'return_date' => now()->addWeeks(3)->format('Y-m-d'),
@@ -226,7 +226,7 @@ class BookingFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson("/api/bookings/{$booking->id}/cancel", [
+            ->postJson("/api/v1/my-bookings/{$booking->id}/cancel", [
                 'reason' => 'Changed my mind',
             ]);
 
@@ -245,7 +245,7 @@ class BookingFlowTest extends TestCase
         ]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson("/api/bookings/{$booking->id}/cancel", [
+            ->postJson("/api/v1/my-bookings/{$booking->id}/cancel", [
                 'reason' => 'Changed my mind',
             ]);
 
@@ -256,17 +256,17 @@ class BookingFlowTest extends TestCase
     public function package_must_be_active_to_book()
     {
         $inactivePackage = TravelPackage::factory()->create([
-            'is_active' => false,
+            'status' => 'archived',
         ]);
 
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $inactivePackage->id,
                 'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
                 'return_date' => now()->addWeeks(3)->format('Y-m-d'),
                 'number_of_travelers' => 1,
                 'travelers' => [
-                    ['name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890'],
+                    ['first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'date_of_birth' => '1990-01-01', 'nationality' => 'US'],
                 ],
             ]);
 
@@ -277,13 +277,13 @@ class BookingFlowTest extends TestCase
     public function booking_flow_generates_booking_number()
     {
         $response = $this->actingAs($this->user, 'sanctum')
-            ->postJson('/api/bookings', [
+            ->postJson('/api/v1/my-bookings', [
                 'travel_package_id' => $this->package->id,
                 'travel_date' => now()->addWeeks(2)->format('Y-m-d'),
                 'return_date' => now()->addWeeks(3)->format('Y-m-d'),
                 'number_of_travelers' => 1,
                 'travelers' => [
-                    ['name' => 'John Doe', 'email' => 'john@example.com', 'phone' => '1234567890'],
+                    ['first_name' => 'John', 'last_name' => 'Doe', 'email' => 'john@example.com', 'phone' => '1234567890', 'date_of_birth' => '1990-01-01', 'nationality' => 'US'],
                 ],
             ]);
 

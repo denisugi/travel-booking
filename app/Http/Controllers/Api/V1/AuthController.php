@@ -106,7 +106,16 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $user = $request->user();
+
+        if ($user) {
+            // Revoke the current token (if authenticated via Sanctum token)
+            if ($user->currentAccessToken()) {
+                $user->currentAccessToken()->delete();
+            }
+            // Or revoke all tokens (if you want to support session auth too)
+            // $user->tokens()->delete();
+        }
 
         return response()->json([
             'success' => true,

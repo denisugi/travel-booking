@@ -1,9 +1,10 @@
-import { Link, useParams } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  Users, 
+import { useState, useEffect } from 'react';
+import { Link } from '@inertiajs/react';
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Users,
   CreditCard,
   Clock,
   Download,
@@ -12,44 +13,61 @@ import {
   AlertCircle,
   Mail,
   Phone,
-  FileText
+  FileText,
+  RefreshCw,
+  User,
+  Shield
 } from 'lucide-react';
 
 interface Traveler {
   id: number;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
-  id_type: string;
-  id_number: string;
+  date_of_birth: string;
+  gender: string;
+  passport_number: string;
+  is_primary: boolean;
+  type: string;
 }
 
 interface Payment {
   id: number;
-  amount: number;
-  payment_method: string;
-  payment_status: string;
-  payment_date: string;
+  amount: string;
+  fee: string;
+  net_amount: string;
+  method: string;
+  status: string;
   transaction_id: string;
   payment_proof: string | null;
+  paid_at: string;
+  created_at: string;
 }
 
 interface BookingDetail {
   id: number;
   booking_number: string;
   status: string;
-  booking_date: string;
+  booking_date: string | null;
   travel_date: string;
-  return_date: string;
+  return_date: string | null;
   number_of_travelers: number;
-  subtotal: number;
-  tax_amount: number;
-  discount_amount: number;
-  total_amount: number;
+  subtotal: string;
+  tax_amount: string;
+  discount_amount: string;
+  total_amount: string;
   payment_status: string;
-  payment_method: string;
+  payment_method: string | null;
   special_requests: string | null;
   notes: string | null;
+  created_at: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+    phone: string;
+  };
   travel_package: {
     id: number;
     name: string;
@@ -58,93 +76,115 @@ interface BookingDetail {
     duration_days: number;
     duration_nights: number;
     price: number;
-  };
-  customer: {
-    id: number;
-    name: string;
-    email: string;
-    phone: string;
+    featured_image: string;
   };
   travelers: Traveler[];
   payments: Payment[];
 }
 
-const mockBooking: BookingDetail = {
-  id: 1,
-  booking_number: 'BK-ABC123-20240501',
-  status: 'confirmed',
-  booking_date: '2024-05-01',
-  travel_date: '2024-06-15',
-  return_date: '2024-06-22',
-  number_of_travelers: 2,
-  subtotal: 5000000,
-  tax_amount: 500000,
-  discount_amount: 0,
-  total_amount: 5500000,
-  payment_status: 'paid',
-  payment_method: 'bank_transfer',
-  special_requests: 'Vegetarian meals requested',
-  notes: 'Booking confirmed via online payment',
-  travel_package: {
-    id: 1,
-    name: 'Bali Paradise Trip',
-    slug: 'bali-paradise-trip',
-    destination: 'Bali, Indonesia',
-    duration_days: 8,
-    duration_nights: 7,
-    price: 5500000,
-  },
-  customer: {
-    id: 1,
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+6281234567890',
-  },
-  travelers: [
-    {
-      id: 1,
-      name: 'John Doe',
-      email: 'john.doe@example.com',
-      phone: '+6281234567890',
-      id_type: 'passport',
-      id_number: 'AB1234567',
-    },
-    {
-      id: 2,
-      name: 'Jane Doe',
-      email: 'jane.doe@example.com',
-      phone: '+6281234567891',
-      id_type: 'passport',
-      id_number: 'CD7654321',
-    },
-  ],
-  payments: [
-    {
-      id: 1,
-      amount: 5500000,
-      payment_method: 'bank_transfer',
-      payment_status: 'completed',
-      payment_date: '2024-05-02',
-      transaction_id: 'TRX-BANK-001',
-      payment_proof: null,
-    },
-  ],
-};
-
 export default function BookingDetailAdmin() {
   const { id } = useParams();
-  const booking = mockBooking;
+  const navigate = useNavigate();
+  const [booking, setBooking] = useState<BookingDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
-  const formatCurrency = (amount: number) => {
+  // Get ID from URL path — Inertia doesn't use React Router params
+  const bookingId = typeof window !== 'undefined'
+    ? parseInt(window.location.pathname.split('/').pop() || '0')
+    : 0;
+
+  const fetchBooking = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/v1/admin/bookings/${bookingId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setBooking(data.data);
+      } else {
+        setError(data.message || 'Failed to load booking');
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBooking();
+  }, [bookingId]);
+
+  const handleConfirmBooking = async () => {
+    if (!confirm('Confirm this booking?')) return;
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/v1/admin/bookings/${bookingId}/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchBooking();
+      } else {
+        alert(data.message || 'Failed to confirm booking');
+      }
+    } catch {
+      alert('Network error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleCancelBooking = async () => {
+    if (!confirm('Cancel this booking? This action cannot be undone.')) return;
+    setActionLoading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/v1/admin/bookings/${bookingId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Accept': 'application/json',
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchBooking();
+      } else {
+        alert(data.message || 'Failed to cancel booking');
+      }
+    } catch {
+      alert('Network error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
     return new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-    }).format(amount);
+    }).format(num);
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('id-ID', {
+  const formatDate = (dateStr: string) => {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleDateString('id-ID', {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -158,6 +198,7 @@ export default function BookingDetailAdmin() {
       pending: 'bg-yellow-100 text-yellow-800',
       cancelled: 'bg-red-100 text-red-800',
       completed: 'bg-blue-100 text-blue-800',
+      refunded: 'bg-purple-100 text-purple-800',
     };
     return styles[status] || 'bg-gray-100 text-gray-800';
   };
@@ -165,22 +206,43 @@ export default function BookingDetailAdmin() {
   const getPaymentBadge = (status: string) => {
     const styles: Record<string, string> = {
       paid: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
+      partial: 'bg-orange-100 text-orange-800',
+      unpaid: 'bg-red-100 text-red-800',
       refunded: 'bg-purple-100 text-purple-800',
       failed: 'bg-red-100 text-red-800',
-      completed: 'bg-green-100 text-green-800',
     };
     return styles[status] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'confirmed': return <CheckCircle2 className="w-5 h-5" />;
-      case 'pending': return <AlertCircle className="w-5 h-5" />;
-      case 'cancelled': return <XCircle className="w-5 h-5" />;
-      default: return null;
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6 flex items-center justify-center">
+        <div className="text-center">
+          <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-3" />
+          <p className="text-gray-500">Loading booking details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !booking) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-5xl mx-auto">
+          <Link to="/admin/bookings" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Bookings
+          </Link>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <p className="text-red-700">{error || 'Booking not found'}</p>
+            <button onClick={fetchBooking} className="mt-3 px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
@@ -197,24 +259,35 @@ export default function BookingDetailAdmin() {
             </div>
             <div className="flex items-center gap-3">
               <span className={`px-3 py-1.5 rounded-full text-sm font-medium ${getStatusBadge(booking.status)} flex items-center gap-1.5`}>
-                {getStatusIcon(booking.status)}
+                {booking.status === 'confirmed' && <CheckCircle2 className="w-4 h-4" />}
+                {booking.status === 'pending' && <AlertCircle className="w-4 h-4" />}
+                {booking.status === 'cancelled' && <XCircle className="w-4 h-4" />}
                 {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
               </span>
-              <button className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-                <Download className="w-5 h-5 text-gray-600" />
+              <button
+                onClick={fetchBooking}
+                className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                title="Refresh"
+              >
+                <RefreshCw className="w-5 h-5 text-gray-600" />
               </button>
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
+          {/* Package Info */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <div className="flex gap-6">
-              <div className="w-32 h-32 bg-gray-200 border-2 border-dashed rounded-xl flex-shrink-0" />
+              {booking.travel_package.featured_image && (
+                <img
+                  src={booking.travel_package.featured_image}
+                  alt={booking.travel_package.name}
+                  className="w-32 h-32 object-cover rounded-xl flex-shrink-0"
+                />
+              )}
               <div className="flex-1">
-                <Link to={`/packages/${booking.travel_package.slug}`} className="text-xl font-semibold text-gray-900 hover:text-blue-600">
-                  {booking.travel_package.name}
-                </Link>
+                <h2 className="text-xl font-semibold text-gray-900">{booking.travel_package.name}</h2>
                 <p className="text-gray-600 flex items-center gap-1 mt-1">
                   <MapPin className="w-4 h-4" />
                   {booking.travel_package.destination}
@@ -238,64 +311,91 @@ export default function BookingDetailAdmin() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
+              {/* Customer Info */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-500">Name</p>
-                    <p className="font-medium text-gray-900 mt-1">{booking.customer.name}</p>
+                    <p className="font-medium text-gray-900 mt-1 flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400" />
+                      {booking.user.name}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Email</p>
                     <p className="font-medium text-gray-900 mt-1 flex items-center gap-2">
                       <Mail className="w-4 h-4 text-gray-400" />
-                      {booking.customer.email}
+                      {booking.user.email}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Phone</p>
                     <p className="font-medium text-gray-900 mt-1 flex items-center gap-2">
                       <Phone className="w-4 h-4 text-gray-400" />
-                      {booking.customer.phone}
+                      {booking.user.phone || '-'}
                     </p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Booking Date</p>
                     <p className="font-medium text-gray-900 mt-1 flex items-center gap-2">
                       <Clock className="w-4 h-4 text-gray-400" />
-                      {formatDate(booking.booking_date)}
+                      {formatDate(booking.created_at)}
                     </p>
                   </div>
                 </div>
               </div>
 
+              {/* Travelers */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Travelers Information</h2>
-                <div className="space-y-4">
-                  {booking.travelers.map((traveler) => (
-                    <div key={traveler.id} className="p-4 border border-gray-100 rounded-lg">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium text-gray-900">{traveler.name}</h3>
-                          <div className="mt-2 space-y-1">
-                            <p className="text-sm text-gray-600 flex items-center gap-2">
-                              <Mail className="w-4 h-4" />{traveler.email}
-                            </p>
-                            <p className="text-sm text-gray-600 flex items-center gap-2">
-                              <Phone className="w-4 h-4" />{traveler.phone}
-                            </p>
+                {booking.travelers.length === 0 ? (
+                  <p className="text-gray-500 text-sm">No traveler information available</p>
+                ) : (
+                  <div className="space-y-4">
+                    {booking.travelers.map((traveler) => (
+                      <div key={traveler.id} className="p-4 border border-gray-100 rounded-lg">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900 flex items-center gap-2">
+                                {traveler.first_name} {traveler.last_name}
+                                {traveler.is_primary && (
+                                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">Primary</span>
+                                )}
+                              </h3>
+                              <p className="text-sm text-gray-500 capitalize">{traveler.type} • {traveler.gender}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            {traveler.passport_number && (
+                              <>
+                                <p className="text-sm text-gray-500">Passport</p>
+                                <p className="font-medium text-gray-900">{traveler.passport_number}</p>
+                              </>
+                            )}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm text-gray-500">{traveler.id_type.toUpperCase()}</p>
-                          <p className="font-medium text-gray-900 mt-1">{traveler.id_number}</p>
+                        <div className="mt-3 grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <p className="text-gray-500">Date of Birth</p>
+                            <p className="text-gray-900">{traveler.date_of_birth ? formatDate(traveler.date_of_birth) : '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Email</p>
+                            <p className="text-gray-900">{traveler.email || '-'}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
+              {/* Special Requests */}
               {booking.special_requests && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -305,16 +405,11 @@ export default function BookingDetailAdmin() {
                   <p className="text-gray-600">{booking.special_requests}</p>
                 </div>
               )}
-
-              {booking.notes && (
-                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Admin Notes</h2>
-                  <p className="text-gray-600">{booking.notes}</p>
-                </div>
-              )}
             </div>
 
+            {/* Sidebar */}
             <div className="space-y-6">
+              {/* Payment Status */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h2>
                 <div className="flex items-center gap-2 mb-4">
@@ -322,14 +417,17 @@ export default function BookingDetailAdmin() {
                     {booking.payment_status === 'paid' ? 'Paid' : booking.payment_status.charAt(0).toUpperCase() + booking.payment_status.slice(1)}
                   </span>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Payment Method</span>
-                    <span className="text-gray-900 font-medium capitalize">{booking.payment_method.replace('_', ' ')}</span>
+                {booking.payment_method && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Payment Method</span>
+                      <span className="text-gray-900 font-medium capitalize">{booking.payment_method.replace('_', ' ')}</span>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
 
+              {/* Price Summary */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Price Summary</h2>
                 <div className="space-y-3">
@@ -338,10 +436,10 @@ export default function BookingDetailAdmin() {
                     <span className="text-gray-900">{formatCurrency(booking.subtotal)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax</span>
+                    <span className="text-gray-600">Tax (11%)</span>
                     <span className="text-gray-900">{formatCurrency(booking.tax_amount)}</span>
                   </div>
-                  {booking.discount_amount > 0 && (
+                  {parseFloat(booking.discount_amount) > 0 && (
                     <div className="flex justify-between text-sm text-green-600">
                       <span>Discount</span>
                       <span>-{formatCurrency(booking.discount_amount)}</span>
@@ -356,6 +454,7 @@ export default function BookingDetailAdmin() {
                 </div>
               </div>
 
+              {/* Payment History */}
               {booking.payments.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment History</h2>
@@ -365,13 +464,13 @@ export default function BookingDetailAdmin() {
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium text-gray-900">{formatCurrency(payment.amount)}</p>
-                            <p className="text-sm text-gray-500 mt-0.5">{payment.transaction_id}</p>
+                            <p className="text-sm text-gray-500 mt-0.5">{payment.transaction_id || '-'}</p>
                             <p className="text-xs text-gray-400 mt-1">
-                              {new Date(payment.payment_date).toLocaleDateString('id-ID')}
+                              {payment.paid_at ? formatDate(payment.paid_at) : formatDate(payment.created_at)}
                             </p>
                           </div>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentBadge(payment.payment_status)}`}>
-                            {payment.payment_status}
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getPaymentBadge(payment.status)}`}>
+                            {payment.status}
                           </span>
                         </div>
                       </div>
@@ -380,16 +479,32 @@ export default function BookingDetailAdmin() {
                 </div>
               )}
 
+              {/* Actions */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
                 <div className="space-y-2">
-                  <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 text-left">
-                    Confirm Booking
-                  </button>
-                  <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 text-left">
-                    Cancel Booking
-                  </button>
-                  <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 text-left">
+                  {booking.status === 'pending' && (
+                    <button
+                      onClick={handleConfirmBooking}
+                      disabled={actionLoading}
+                      className="w-full px-4 py-2.5 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      {actionLoading ? 'Processing...' : 'Confirm Booking'}
+                    </button>
+                  )}
+                  {booking.status !== 'cancelled' && booking.status !== 'completed' && (
+                    <button
+                      onClick={handleCancelBooking}
+                      disabled={actionLoading}
+                      className="w-full px-4 py-2.5 border border-red-200 text-red-600 rounded-lg font-medium hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      {actionLoading ? 'Processing...' : 'Cancel Booking'}
+                    </button>
+                  )}
+                  <button className="w-full px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-50 flex items-center justify-center gap-2">
+                    <Mail className="w-4 h-4" />
                     Send Confirmation Email
                   </button>
                 </div>

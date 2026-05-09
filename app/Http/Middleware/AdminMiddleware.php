@@ -22,7 +22,7 @@ class AdminMiddleware
             ], 401);
         }
 
-        if (!$user->hasRole('admin')) {
+        if (!$user->hasRole('admin') && !$user->hasRole('super_admin')) {
             return response()->json([
                 'success' => false,
                 'message' => 'Access denied. Admin privileges required.',

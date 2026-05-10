@@ -22,16 +22,17 @@ if (window.Ziggy) {
 createInertiaApp({
   resolve: async (name) => {
     const pages = import.meta.glob('./Pages/**/*.tsx', { eager: true });
-    return pages[`./Pages/${name}.tsx`];
+    const page = pages[`./Pages/${name}.tsx`];
+    console.log('[DEBUG] Resolving:', name, '→', page ? 'FOUND' : 'NOT FOUND', 'Available keys sample:', Object.keys(pages).slice(0, 5).join(', '));
+    return page;
   },
   setup({ el, App, props }) {
-    // Set axios default CSRF token from meta tag (fixes 419 Page Expired on form POSTs)
-    const csrfToken = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken && typeof window !== 'undefined') {
-      (window as any).axios.defaults.headers.common['X-CSRF-TOKEN'] = csrfToken;
-    }
-
+    console.log('[DEBUG] Inertia setup called', { el: el.id || el, component: props.page?.component });
     const root = ReactDOM.createRoot(el);
-    root.render(<App {...props} />);
+    root.render(
+      <React.StrictMode>
+        <App {...props} />
+      </React.StrictMode>,
+    );
   },
 });

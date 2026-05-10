@@ -1,4 +1,5 @@
 import { Link, usePage } from '@inertiajs/react';
+import AdminLayout from '@/Components/Layout/AdminLayout';
 import {
   Package,
   Users,
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
   };
 
   return (
+    <AdminLayout>
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
@@ -354,5 +356,6 @@ export default function AdminDashboard() {
         )}
       </div>
     </div>
+    </AdminLayout>
   );
 }

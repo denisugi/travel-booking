@@ -1,6 +1,4 @@
-import { toast as toastFn, Toaster as SonnerToaster } from 'sonner';
-
-type ToastType = 'success' | 'error' | 'warning' | 'info';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface ToastOptions {
   title: string;
@@ -8,13 +6,12 @@ interface ToastOptions {
   duration?: number;
 }
 
-const toast = {
-  success: (options: ToastOptions) => toastFn.success(options.title, { description: options.description, duration: options.duration }),
-  error: (options: ToastOptions) => toastFn.error(options.title, { description: options.description, duration: options.duration }),
-  warning: (options: ToastOptions) => toastFn.warning(options.title, { description: options.description, duration: options.duration }),
-  info: (options: ToastOptions) => toastFn.info(options.title, { description: options.description, duration: options.duration }),
-  custom: (component: React.ReactNode) => toastFn.custom((t) => component as React.ReactElement),
+const toastLib = {
+  success: (options: ToastOptions) => toast.success(options.title, { description: options.description, duration: options.duration }),
+  error: (options: ToastOptions) => toast.error(options.title, { description: options.description, duration: options.duration }),
+  warning: (options: ToastOptions) => toast(options.title, { icon: '⚠️', duration: options.duration }),
+  info: (options: ToastOptions) => toast(options.title, { icon: 'ℹ️', duration: options.duration }),
 };
 
-export { toast };
-export { SonnerToaster as Toaster };
+export { toastLib as toast };
+export { Toaster };

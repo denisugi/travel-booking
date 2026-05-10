@@ -1,5 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 // Configure base URL
 axios.defaults.baseURL = import.meta.env.VITE_API_URL || '/api';

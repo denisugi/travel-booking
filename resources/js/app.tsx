@@ -3,6 +3,8 @@ import ReactDOM from 'react-dom/client';
 import { createInertiaApp } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import '../css/app.css';
+import AppLayout from './Components/Layout/AppLayout';
+import toast, { Toaster } from 'react-hot-toast';
 
 declare global {
   interface Window {
@@ -30,9 +32,21 @@ createInertiaApp({
     console.log('[DEBUG] Inertia setup called', { el: el.id || el, component: props.page?.component });
     const root = ReactDOM.createRoot(el);
     root.render(
-      <React.StrictMode>
+      <>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+              borderRadius: '8px',
+              padding: '12px 16px',
+            },
+          }}
+        />
         <App {...props} />
-      </React.StrictMode>,
+      </>
     );
   },
 });

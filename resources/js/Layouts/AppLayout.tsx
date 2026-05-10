@@ -1,5 +1,4 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import { cn } from '@/lib/utils';
 
 const AppLayout = () => {
@@ -79,8 +78,6 @@ const AppLayout = () => {
       <main className="container mx-auto px-4 py-8">
         <Outlet />
       </main>
-
-      <Toaster position="top-right" richColors />
     </div>
   );
 };

@@ -22,6 +22,11 @@ class RoleMiddleware
             ], 401);
         }
 
+        // super_admin always passes for any admin role check
+        if ($user->hasRole('super_admin')) {
+            return $next($request);
+        }
+
         foreach ($roles as $role) {
             if ($user->hasRole($role)) {
                 return $next($request);

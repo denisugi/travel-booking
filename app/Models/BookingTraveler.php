@@ -19,11 +19,9 @@ class BookingTraveler extends Model
         'date_of_birth',
         'gender',
         'passport_number',
-        'passport_expiry',
         'nationality',
         'is_primary',
-        'special_requirements',
-    ];
+        ];
 
     protected $casts = [
         'date_of_birth' => 'date',

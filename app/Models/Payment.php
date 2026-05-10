@@ -12,13 +12,21 @@ class Payment extends Model
 
     protected $fillable = [
         'booking_id',
+        'user_id',
         'amount',
-        'payment_method',
-        'payment_status',
+        'fee',
+        'net_amount',
+        'method',
+        'status',
         'transaction_id',
-        'payment_date',
         'payment_proof',
         'notes',
+        'card_last_four',
+        'card_brand',
+        'bank_name',
+        'account_number',
+        'gateway_response',
+        'paid_at',
         'metadata',
     ];
 
@@ -29,7 +37,8 @@ class Payment extends Model
     ];
 
     public const STATUS_PENDING = 'pending';
-    public const STATUS_COMPLETED = 'completed';
+    public const STATUS_PAID = 'paid';
+
     public const STATUS_FAILED = 'failed';
     public const STATUS_REFUNDED = 'refunded';
 

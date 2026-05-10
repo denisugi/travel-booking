@@ -1,7 +1,8 @@
 import { FormEventHandler, useState } from 'react';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { Eye, EyeOff, Mail, Lock } from 'lucide-react';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
+import BlankLayout from '@/Components/Layout/BlankLayout';
 import { Button } from '@/Components/ui/Button';
 import { Input } from '@/Components/ui/Input';
 import { Label } from '@/Components/ui/Label';
@@ -26,6 +27,11 @@ export default function Login({ canResetPassword = true }: Props) {
 
   const [showPassword, setShowPassword] = useState(false);
 
+  // Debug: expose toast globally on mount
+  if (typeof window !== 'undefined') {
+    (window as any).__testToastFn = toast;
+  }
+
   const handleSubmit: FormEventHandler = (e) => {
     e.preventDefault();
     clearErrors();
@@ -49,13 +55,19 @@ export default function Login({ canResetPassword = true }: Props) {
       },
       onFinish: () => setData('password', ''),
     });
+
+    // Debug: trigger a test toast after form submission
+    if (typeof window !== 'undefined') {
+      (window as any).__testToast = () => {
+        toast.error('Test toast from console!', { duration: 5000 });
+      };
+    }
   };
 
   return (
-    <>
+    <BlankLayout>
       <Head title="Masuk — Wanderlust Travel" />
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
+      <div className="w-full max-w-md">
           {/* Logo + Header */}
           <div className="text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2 mb-4">
@@ -187,8 +199,7 @@ export default function Login({ canResetPassword = true }: Props) {
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
-    </>
+    </BlankLayout>
   );
 }

@@ -1,5 +1,4 @@
 import { Outlet } from 'react-router-dom';
-import { Toaster } from 'sonner';
 
 const PublicLayout = () => {
   return (
@@ -36,8 +35,6 @@ const PublicLayout = () => {
           </div>
         </div>
       </footer>
-
-      <Toaster position="top-right" richColors />
     </div>
   );
 };

@@ -224,6 +224,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
     Route::get('/settings', function () {
         return Inertia::render('Admin/Settings/Index');
     })->name('settings.index');
+    Route::put('/settings', [\App\Http\Controllers\Admin\SettingsController::class, 'update'])->name('settings.update');
 
     // Reports
     Route::get('/reports', function () {

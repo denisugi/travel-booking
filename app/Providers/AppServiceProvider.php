@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\SiteSetting;
 use App\Repositories\Contracts\BlogRepositoryInterface;
 use App\Repositories\Contracts\BookingRepositoryInterface;
 use App\Repositories\Contracts\PaymentRepositoryInterface;
@@ -12,6 +13,7 @@ use App\Repositories\Eloquent\BookingRepository;
 use App\Repositories\Eloquent\PaymentRepository;
 use App\Repositories\Eloquent\TravelPackageRepository;
 use App\Repositories\Eloquent\UserRepository;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
 
@@ -42,5 +44,15 @@ class AppServiceProvider extends ServiceProvider
         if (config('app.env') === 'production') {
             $this->app['request']->server->set('HTTPS', true);
         }
+
+        // Share site_settings globally via View composer
+        View::composer('*', function ($view) {
+            $siteSettings = cache()->remember('site_settings_public', 3600, function () {
+                return SiteSetting::public()
+                    ->pluck('value', 'key')
+                    ->toArray();
+            });
+            $view->with('siteSettings', (object) $siteSettings);
+        });
     }
 }

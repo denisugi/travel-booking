@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\SiteSetting;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades;
 use Inertia\Middleware;
@@ -39,7 +40,12 @@ class HandleInertiaRequests extends Middleware
                 'name' => $request->user()->name,
                 'email' => $request->user()->email,
             ] : null,
-            'ziggy' => (new \Tighten\Ziggy\Ziggy)->toArray(),
+            'ziggy' => (new \Tighten\Ziggy\Ziggy(null, config('app.url')))->toArray(),
+            'siteSettings' => cache()->remember('site_settings_public', 3600, function () {
+                return SiteSetting::public()
+                    ->pluck('value', 'key')
+                    ->toArray();
+            }),
         ];
     }
 }

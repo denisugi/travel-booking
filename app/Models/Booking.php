@@ -16,7 +16,6 @@ class Booking extends Model
         'travel_package_id',
         'booking_number',
         'status',
-        'booking_date',
         'travel_date',
         'return_date',
         'number_of_travelers',
